@@ -10,8 +10,8 @@ type TransferStatus string
 
 const (
 	TransferStatusPending TransferStatus = "pending"
-	TransferStatusSuccess                = "succeeded"
-	TransferStatusFailed                 = "failed"
+	TransferStatusSuccess TransferStatus = "succeeded"
+	TransferStatusFailed  TransferStatus = "failed"
 )
 
 type Transfer struct {

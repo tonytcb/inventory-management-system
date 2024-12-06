@@ -4,8 +4,8 @@ type Currency string
 
 const (
 	USD Currency = "USD"
-	EUR          = "EUR"
-	GBP          = "GBP"
-	JPY          = "JPY"
-	AUD          = "AUD"
+	EUR Currency = "EUR"
+	GBP Currency = "GBP"
+	JPY Currency = "JPY"
+	AUD Currency = "AUD"
 )

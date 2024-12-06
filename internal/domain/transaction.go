@@ -10,8 +10,8 @@ type TransactionType string
 
 const (
 	TransactionTypeDeposit  TransactionType = "deposit"
-	TransactionTypeWithdraw                 = "withdraw"
-	TransactionTypeTransfer                 = "transfer"
+	TransactionTypeWithdraw TransactionType = "withdraw"
+	TransactionTypeTransfer TransactionType = "transfer"
 )
 
 // Transaction represents a currency transaction

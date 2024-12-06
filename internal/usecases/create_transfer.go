@@ -2,8 +2,6 @@ package usecases
 
 import (
 	"context"
-	"time"
-
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 
@@ -38,6 +36,22 @@ type CreateTransfer struct {
 	txManager        TxManager
 }
 
+func NewCreateTransfer(
+	rateProvider FXRateProvider,
+	currencyPoolRepo CurrencyPoolRepository,
+	transferRepo TransferRepository,
+	transactionRepo TransactionRepository,
+	txManager TxManager,
+) *CreateTransfer {
+	return &CreateTransfer{
+		rateProvider:     rateProvider,
+		currencyPoolRepo: currencyPoolRepo,
+		transferRepo:     transferRepo,
+		transactionRepo:  transactionRepo,
+		txManager:        txManager,
+	}
+}
+
 func (c *CreateTransfer) Create(
 	ctx context.Context,
 	transfer *domain.Transfer,
@@ -51,18 +65,16 @@ func (c *CreateTransfer) Create(
 	var (
 		convertedAmount = transfer.OriginalAmount.Mul(rate.Rate)
 		marginAmount    = convertedAmount.Mul(margin)
-		finalAmount     = convertedAmount.Sub(marginAmount)
 	)
 
+	transfer.ConvertedAmount = convertedAmount
+	transfer.FinalAmount = convertedAmount.Add(marginAmount)
+	transfer.Status = domain.TransferStatusPending
+
 	err = c.txManager.Do(ctx, func(ctx context.Context) error {
-		if err = c.currencyPoolRepo.Debit(ctx, transfer.To.Currency, finalAmount); err != nil {
+		if err = c.currencyPoolRepo.Debit(ctx, transfer.To.Currency, transfer.FinalAmount); err != nil {
 			return errors.Wrap(err, "error debiting amount from currency pool")
 		}
-
-		transfer.ConvertedAmount = convertedAmount
-		transfer.FinalAmount = finalAmount
-		transfer.Status = domain.TransferStatusPending
-		transfer.CreatedAt = time.Now().UTC()
 
 		if err = c.transferRepo.Save(ctx, transfer); err != nil {
 			return errors.Wrap(err, "error saving transfer")
@@ -74,7 +86,6 @@ func (c *CreateTransfer) Create(
 			Amount:      transfer.ConvertedAmount,
 			FXRate:      rate,
 			Revenue:     marginAmount,
-			CreatedAt:   time.Now().UTC(),
 		}
 
 		if err = c.transactionRepo.Save(ctx, transaction); err != nil {
