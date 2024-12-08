@@ -1,4 +1,4 @@
-CREATE TABLE transfers
+CREATE TABLE IF NOT EXISTS transfers
 (
     id               SERIAL PRIMARY KEY,
     converted_amount DECIMAL(20, 8)              NOT NULL,

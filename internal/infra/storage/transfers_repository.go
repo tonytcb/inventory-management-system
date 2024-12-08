@@ -3,10 +3,10 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"github.com/jackc/pgx/v5"
-	"github.com/pkg/errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pkg/errors"
 
 	"github.com/tonytcb/inventory-management-system/internal/domain"
 )
@@ -74,10 +74,15 @@ func (r *TransferRepository) GetByID(ctx context.Context, id int) (*domain.Trans
 		WHERE id = $1;
 	`
 
+	var db QueryRower = r.db
+	if tx, ok := extractTxFromContext(ctx); ok {
+		db = tx
+	}
+
 	var transfer domain.Transfer
 	var updatedAt = sql.NullTime{}
 
-	err := r.db.QueryRow(ctx, query, id).Scan(
+	err := db.QueryRow(ctx, query, id).Scan(
 		&transfer.ID,
 		&transfer.ConvertedAmount,
 		&transfer.FinalAmount,
@@ -101,4 +106,24 @@ func (r *TransferRepository) GetByID(ctx context.Context, id int) (*domain.Trans
 	}
 
 	return &transfer, nil
+}
+
+func (r *TransferRepository) UpdateStatus(ctx context.Context, id int, status domain.TransferStatus) error {
+	const query = `
+		UPDATE transfers
+		SET status = $1, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $2 AND status = $3;
+	`
+
+	var db QueryRower = r.db
+	if tx, ok := extractTxFromContext(ctx); ok {
+		db = tx
+	}
+
+	_, err := db.Exec(ctx, query, status, id, domain.TransferStatusPending)
+	if err != nil {
+		return errors.Wrap(err, "error updating transfer status")
+	}
+
+	return nil
 }

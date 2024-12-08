@@ -3,7 +3,6 @@ package usecases
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
@@ -15,11 +14,25 @@ import (
 )
 
 func TestCreateTransfer_Create(t *testing.T) {
+	wantRateOnSuccess := &domain.FXRate{
+		ID:   1,
+		Rate: decimal.RequireFromString("1.1"),
+	}
+	wantTransferOnSuccess := &domain.Transfer{
+		ID:              1,
+		OriginalAmount:  decimal.NewFromInt(100),
+		ConvertedAmount: decimal.NewFromInt(110),
+		FinalAmount:     decimal.RequireFromString("111.1"),
+		Status:          domain.TransferStatusPending,
+		From:            domain.Account{Currency: domain.USD},
+		To:              domain.Account{Currency: domain.EUR},
+	}
+
 	type fields struct {
 		rateProvider     func(*testing.T) FXRateProvider
 		currencyPoolRepo func(*testing.T) CurrencyPoolRepository
 		transferRepo     func(*testing.T) TransferRepository
-		transactionRepo  func(*testing.T) TransactionRepository
+		notifier         func(*testing.T) TransferNotifier
 		txManager        func(*testing.T) TxManager
 	}
 	type args struct {
@@ -41,52 +54,44 @@ func TestCreateTransfer_Create(t *testing.T) {
 					m := mocks.NewFXRateProvider(t)
 					m.EXPECT().
 						GetLatestRate(mock.Anything, domain.USD, domain.EUR).
-						Return(&domain.FXRate{ID: 1, Rate: decimal.RequireFromString("1.1")}, nil).
+						Return(wantRateOnSuccess, nil).
 						Once()
 					return m
 				},
 				currencyPoolRepo: func(t *testing.T) CurrencyPoolRepository {
 					m := mocks.NewCurrencyPoolRepository(t)
 					m.EXPECT().
-						Debit(mock.Anything, domain.EUR, decimal.RequireFromString("111.1")).
+						Debit(mock.Anything, domain.USD, decimal.RequireFromString("100")).
 						Return(nil).
 						Once()
 					return m
 				},
 				transferRepo: func(t *testing.T) TransferRepository {
-					wantTransfer := &domain.Transfer{
-						OriginalAmount:  decimal.NewFromFloat(100),
-						ConvertedAmount: decimal.NewFromFloat(110),
-						FinalAmount:     decimal.RequireFromString("111.1"),
-						Status:          domain.TransferStatusPending,
-						From:            domain.Account{Currency: domain.USD},
-						To:              domain.Account{Currency: domain.EUR},
-					}
-
 					m := mocks.NewTransferRepository(t)
 					m.EXPECT().
-						Save(mock.Anything, wantTransfer).
-						RunAndReturn(func(_ context.Context, t *domain.Transfer) error {
-							t.ID = 1
-							t.CreatedAt = time.Now().UTC()
+						Save(mock.Anything, mock.Anything).
+						RunAndReturn(func(_ context.Context, got *domain.Transfer) error {
+							got.ID = 1
+
+							assert.Equal(t, wantTransferOnSuccess.OriginalAmount.String(), got.OriginalAmount.String())
+							assert.Equal(t, wantTransferOnSuccess.ConvertedAmount.String(), got.ConvertedAmount.String())
+							assert.Equal(t, wantTransferOnSuccess.FinalAmount.String(), got.FinalAmount.String())
+							assert.Equal(t, wantTransferOnSuccess.Status, got.Status)
+
 							return nil
 						}).
 						Once()
 					return m
 				},
-				transactionRepo: func(t *testing.T) TransactionRepository {
-					wantTransaction := &domain.Transaction{
-						ReferenceID: 1,
-						Type:        domain.TransactionTypeTransfer,
-						Amount:      decimal.NewFromFloat(110),
-						FXRate:      &domain.FXRate{ID: 1, Rate: decimal.RequireFromString("1.1")},
-						Revenue:     decimal.RequireFromString("1.1"),
-					}
-
-					m := mocks.NewTransactionRepository(t)
+				notifier: func(t *testing.T) TransferNotifier {
+					m := mocks.NewTransferNotifier(t)
 					m.EXPECT().
-						Save(mock.Anything, wantTransaction).
-						Return(nil).
+						Created(mock.Anything, mock.Anything).
+						RunAndReturn(func(_ context.Context, got *domain.TransferCreatedEvent) error {
+							assert.Equal(t, wantTransferOnSuccess.ID, got.Transfer.ID)
+							assert.Equal(t, wantRateOnSuccess.Rate.String(), got.FxRate.Rate.String())
+							return nil
+						}).
 						Once()
 					return m
 				},
@@ -97,7 +102,7 @@ func TestCreateTransfer_Create(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				transfer: &domain.Transfer{
-					OriginalAmount: decimal.NewFromFloat(100),
+					OriginalAmount: decimal.NewFromInt(100),
 					From:           domain.Account{Currency: domain.USD},
 					To:             domain.Account{Currency: domain.EUR},
 				},
@@ -105,8 +110,8 @@ func TestCreateTransfer_Create(t *testing.T) {
 			},
 			want: &domain.Transfer{
 				ID:              1,
-				OriginalAmount:  decimal.NewFromFloat(100),
-				ConvertedAmount: decimal.NewFromFloat(110),
+				OriginalAmount:  decimal.NewFromInt(100),
+				ConvertedAmount: decimal.NewFromInt(110),
 				FinalAmount:     decimal.RequireFromString("111.1"),
 				Status:          domain.TransferStatusPending,
 				From:            domain.Account{Currency: domain.USD},
@@ -122,7 +127,7 @@ func TestCreateTransfer_Create(t *testing.T) {
 				tt.fields.rateProvider(t),
 				tt.fields.currencyPoolRepo(t),
 				tt.fields.transferRepo(t),
-				tt.fields.transactionRepo(t),
+				tt.fields.notifier(t),
 				tt.fields.txManager(t),
 			)
 
@@ -133,9 +138,13 @@ func TestCreateTransfer_Create(t *testing.T) {
 				return
 			}
 
-			tt.want.CreatedAt = got.CreatedAt
-
-			assert.EqualValues(t, tt.want, got)
+			assert.Equal(t, tt.want.ID, got.ID)
+			assert.Equal(t, tt.want.OriginalAmount.String(), got.OriginalAmount.String())
+			assert.Equal(t, tt.want.ConvertedAmount.String(), got.ConvertedAmount.String())
+			assert.Equal(t, tt.want.FinalAmount.String(), got.FinalAmount.String())
+			assert.Equal(t, tt.want.Status, got.Status)
+			assert.Equal(t, tt.want.From.Currency, got.From.Currency)
+			assert.Equal(t, tt.want.To.Currency, got.To.Currency)
 		})
 	}
 }

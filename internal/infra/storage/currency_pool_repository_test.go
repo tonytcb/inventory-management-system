@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package storage
 
 import (
@@ -66,10 +69,76 @@ func TestCurrencyPoolRepository_Debit(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrCurrencyNotFound)
 }
 
+func TestCurrencyPoolRepository_Credit(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	dependencies := integration.NewDependencies(ctx, t)
+
+	dbConnection, err := NewPostgresConnection(ctx, dependencies.Cfg)
+	require.NoError(t, err)
+
+	truncateTables(ctx, t, dbConnection)
+
+	repo := NewCurrencyPoolRepository(dbConnection)
+
+	// Insert initial balances
+	insertCurrencyPool(ctx, t, dbConnection, domain.USD, decimal.RequireFromString("1000"))
+	insertCurrencyPool(ctx, t, dbConnection, domain.EUR, decimal.RequireFromString("500"))
+
+	// Test credit operations
+	assert.NoError(t, repo.Credit(ctx, domain.USD, decimal.RequireFromString("100")))
+	assert.NoError(t, repo.Credit(ctx, domain.EUR, decimal.RequireFromString("50.12345678")))
+
+	// Verify USD balance
+	usd, err := repo.GetLatest(ctx, domain.USD)
+	require.NoError(t, err)
+	assert.Equal(t, decimal.RequireFromString("1100").String(), usd.Balance.String())
+
+	// Verify EUR balance
+	eur, err := repo.GetLatest(ctx, domain.EUR)
+	require.NoError(t, err)
+	assert.Equal(t, decimal.RequireFromString("550.12345678").String(), eur.Balance.String())
+}
+
+func TestCurrencyPoolRepository_Rebalance(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	dependencies := integration.NewDependencies(ctx, t)
+
+	dbConnection, err := NewPostgresConnection(ctx, dependencies.Cfg)
+	require.NoError(t, err)
+
+	truncateTables(ctx, t, dbConnection)
+
+	repo := NewCurrencyPoolRepository(dbConnection)
+
+	// Insert initial balances
+	insertCurrencyPool(ctx, t, dbConnection, domain.USD, decimal.RequireFromString("1000"))
+	insertCurrencyPool(ctx, t, dbConnection, domain.EUR, decimal.RequireFromString("500"))
+
+	// Define FX rate
+	rate := &domain.FXRate{
+		FromCurrency: domain.USD,
+		ToCurrency:   domain.EUR,
+		Rate:         decimal.RequireFromString("0.85"),
+	}
+
+	// Test Rebalance method
+	fromBalance, toBalance, err := repo.Rebalance(ctx, domain.USD, domain.EUR, decimal.RequireFromString("100"), rate)
+	require.NoError(t, err)
+
+	// Verify balances after rebalancing
+	assert.Equal(t, decimal.RequireFromString("900").String(), fromBalance.String())
+	assert.Equal(t, decimal.RequireFromString("585").String(), toBalance.String())
+}
+
 func truncateTables(ctx context.Context, _ *testing.T, db *pgxpool.Pool) {
 	_, _ = db.Exec(ctx, "TRUNCATE currency_pools_ledger")
 	_, _ = db.Exec(ctx, "TRUNCATE fx_rates")
 	_, _ = db.Exec(ctx, "TRUNCATE transactions")
+	_, _ = db.Exec(ctx, "TRUNCATE transaction_volumes")
 	_, _ = db.Exec(ctx, "TRUNCATE transfer")
 }
 

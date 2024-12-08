@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 
@@ -14,14 +15,25 @@ type FXRateProvider interface {
 
 type CurrencyPoolRepository interface {
 	Debit(context.Context, domain.Currency, decimal.Decimal) error
+	Credit(context.Context, domain.Currency, decimal.Decimal) error
+	GetAvailableLiquidity(ctx context.Context, currency domain.Currency) (decimal.Decimal, error)
+	Rebalance(
+		ctx context.Context,
+		fromCurrency,
+		toCurrency domain.Currency,
+		amount decimal.Decimal,
+		rate *domain.FXRate,
+	) (decimal.Decimal, decimal.Decimal, error)
 }
 
 type TransferRepository interface {
+	GetByID(ctx context.Context, id int) (*domain.Transfer, error)
 	Save(context.Context, *domain.Transfer) error
+	UpdateStatus(ctx context.Context, id int, status domain.TransferStatus) error
 }
 
-type TransactionRepository interface {
-	Save(context.Context, *domain.Transaction) error
+type TransferNotifier interface {
+	Created(context.Context, *domain.TransferCreatedEvent) error
 }
 
 type TxManager interface {
@@ -32,7 +44,7 @@ type CreateTransfer struct {
 	rateProvider     FXRateProvider
 	currencyPoolRepo CurrencyPoolRepository
 	transferRepo     TransferRepository
-	transactionRepo  TransactionRepository
+	notifier         TransferNotifier
 	txManager        TxManager
 }
 
@@ -40,14 +52,14 @@ func NewCreateTransfer(
 	rateProvider FXRateProvider,
 	currencyPoolRepo CurrencyPoolRepository,
 	transferRepo TransferRepository,
-	transactionRepo TransactionRepository,
+	notifier TransferNotifier,
 	txManager TxManager,
 ) *CreateTransfer {
 	return &CreateTransfer{
 		rateProvider:     rateProvider,
 		currencyPoolRepo: currencyPoolRepo,
 		transferRepo:     transferRepo,
-		transactionRepo:  transactionRepo,
+		notifier:         notifier,
 		txManager:        txManager,
 	}
 }
@@ -62,17 +74,12 @@ func (c *CreateTransfer) Create(
 		return nil, errors.Wrap(err, "error to get fx rate")
 	}
 
-	var (
-		convertedAmount = transfer.OriginalAmount.Mul(rate.Rate)
-		marginAmount    = convertedAmount.Mul(margin)
-	)
-
-	transfer.ConvertedAmount = convertedAmount
-	transfer.FinalAmount = convertedAmount.Add(marginAmount)
 	transfer.Status = domain.TransferStatusPending
 
+	transfer.ConvertAmounts(rate.Rate, margin)
+
 	err = c.txManager.Do(ctx, func(ctx context.Context) error {
-		if err = c.currencyPoolRepo.Debit(ctx, transfer.To.Currency, transfer.FinalAmount); err != nil {
+		if err = c.currencyPoolRepo.Debit(ctx, transfer.From.Currency, transfer.OriginalAmount); err != nil {
 			return errors.Wrap(err, "error debiting amount from currency pool")
 		}
 
@@ -80,16 +87,9 @@ func (c *CreateTransfer) Create(
 			return errors.Wrap(err, "error saving transfer")
 		}
 
-		transaction := &domain.Transaction{
-			Type:        domain.TransactionTypeTransfer,
-			ReferenceID: transfer.ID,
-			Amount:      transfer.ConvertedAmount,
-			FXRate:      rate,
-			Revenue:     marginAmount,
-		}
-
-		if err = c.transactionRepo.Save(ctx, transaction); err != nil {
-			return errors.Wrap(err, "error saving transaction")
+		evt := domain.NewTransferCreatedEvent(transfer, rate)
+		if err = c.notifier.Created(ctx, evt); err != nil {
+			return errors.Wrap(err, "error dispatching transfer created event")
 		}
 
 		return nil

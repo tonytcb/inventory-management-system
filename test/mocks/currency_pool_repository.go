@@ -24,6 +24,54 @@ func (_m *CurrencyPoolRepository) EXPECT() *CurrencyPoolRepository_Expecter {
 	return &CurrencyPoolRepository_Expecter{mock: &_m.Mock}
 }
 
+// Credit provides a mock function with given fields: _a0, _a1, _a2
+func (_m *CurrencyPoolRepository) Credit(_a0 context.Context, _a1 domain.Currency, _a2 decimal.Decimal) error {
+	ret := _m.Called(_a0, _a1, _a2)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Credit")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Currency, decimal.Decimal) error); ok {
+		r0 = rf(_a0, _a1, _a2)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// CurrencyPoolRepository_Credit_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Credit'
+type CurrencyPoolRepository_Credit_Call struct {
+	*mock.Call
+}
+
+// Credit is a helper method to define mock.On call
+//   - _a0 context.Context
+//   - _a1 domain.Currency
+//   - _a2 decimal.Decimal
+func (_e *CurrencyPoolRepository_Expecter) Credit(_a0 interface{}, _a1 interface{}, _a2 interface{}) *CurrencyPoolRepository_Credit_Call {
+	return &CurrencyPoolRepository_Credit_Call{Call: _e.mock.On("Credit", _a0, _a1, _a2)}
+}
+
+func (_c *CurrencyPoolRepository_Credit_Call) Run(run func(_a0 context.Context, _a1 domain.Currency, _a2 decimal.Decimal)) *CurrencyPoolRepository_Credit_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(domain.Currency), args[2].(decimal.Decimal))
+	})
+	return _c
+}
+
+func (_c *CurrencyPoolRepository_Credit_Call) Return(_a0 error) *CurrencyPoolRepository_Credit_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *CurrencyPoolRepository_Credit_Call) RunAndReturn(run func(context.Context, domain.Currency, decimal.Decimal) error) *CurrencyPoolRepository_Credit_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Debit provides a mock function with given fields: _a0, _a1, _a2
 func (_m *CurrencyPoolRepository) Debit(_a0 context.Context, _a1 domain.Currency, _a2 decimal.Decimal) error {
 	ret := _m.Called(_a0, _a1, _a2)
@@ -68,6 +116,130 @@ func (_c *CurrencyPoolRepository_Debit_Call) Return(_a0 error) *CurrencyPoolRepo
 }
 
 func (_c *CurrencyPoolRepository_Debit_Call) RunAndReturn(run func(context.Context, domain.Currency, decimal.Decimal) error) *CurrencyPoolRepository_Debit_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAvailableLiquidity provides a mock function with given fields: ctx, currency
+func (_m *CurrencyPoolRepository) GetAvailableLiquidity(ctx context.Context, currency domain.Currency) (decimal.Decimal, error) {
+	ret := _m.Called(ctx, currency)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAvailableLiquidity")
+	}
+
+	var r0 decimal.Decimal
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Currency) (decimal.Decimal, error)); ok {
+		return rf(ctx, currency)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Currency) decimal.Decimal); ok {
+		r0 = rf(ctx, currency)
+	} else {
+		r0 = ret.Get(0).(decimal.Decimal)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, domain.Currency) error); ok {
+		r1 = rf(ctx, currency)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CurrencyPoolRepository_GetAvailableLiquidity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAvailableLiquidity'
+type CurrencyPoolRepository_GetAvailableLiquidity_Call struct {
+	*mock.Call
+}
+
+// GetAvailableLiquidity is a helper method to define mock.On call
+//   - ctx context.Context
+//   - currency domain.Currency
+func (_e *CurrencyPoolRepository_Expecter) GetAvailableLiquidity(ctx interface{}, currency interface{}) *CurrencyPoolRepository_GetAvailableLiquidity_Call {
+	return &CurrencyPoolRepository_GetAvailableLiquidity_Call{Call: _e.mock.On("GetAvailableLiquidity", ctx, currency)}
+}
+
+func (_c *CurrencyPoolRepository_GetAvailableLiquidity_Call) Run(run func(ctx context.Context, currency domain.Currency)) *CurrencyPoolRepository_GetAvailableLiquidity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(domain.Currency))
+	})
+	return _c
+}
+
+func (_c *CurrencyPoolRepository_GetAvailableLiquidity_Call) Return(_a0 decimal.Decimal, _a1 error) *CurrencyPoolRepository_GetAvailableLiquidity_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *CurrencyPoolRepository_GetAvailableLiquidity_Call) RunAndReturn(run func(context.Context, domain.Currency) (decimal.Decimal, error)) *CurrencyPoolRepository_GetAvailableLiquidity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Rebalance provides a mock function with given fields: ctx, fromCurrency, toCurrency, amount, rate
+func (_m *CurrencyPoolRepository) Rebalance(ctx context.Context, fromCurrency domain.Currency, toCurrency domain.Currency, amount decimal.Decimal, rate *domain.FXRate) (decimal.Decimal, decimal.Decimal, error) {
+	ret := _m.Called(ctx, fromCurrency, toCurrency, amount, rate)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Rebalance")
+	}
+
+	var r0 decimal.Decimal
+	var r1 decimal.Decimal
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Currency, domain.Currency, decimal.Decimal, *domain.FXRate) (decimal.Decimal, decimal.Decimal, error)); ok {
+		return rf(ctx, fromCurrency, toCurrency, amount, rate)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Currency, domain.Currency, decimal.Decimal, *domain.FXRate) decimal.Decimal); ok {
+		r0 = rf(ctx, fromCurrency, toCurrency, amount, rate)
+	} else {
+		r0 = ret.Get(0).(decimal.Decimal)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, domain.Currency, domain.Currency, decimal.Decimal, *domain.FXRate) decimal.Decimal); ok {
+		r1 = rf(ctx, fromCurrency, toCurrency, amount, rate)
+	} else {
+		r1 = ret.Get(1).(decimal.Decimal)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, domain.Currency, domain.Currency, decimal.Decimal, *domain.FXRate) error); ok {
+		r2 = rf(ctx, fromCurrency, toCurrency, amount, rate)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// CurrencyPoolRepository_Rebalance_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Rebalance'
+type CurrencyPoolRepository_Rebalance_Call struct {
+	*mock.Call
+}
+
+// Rebalance is a helper method to define mock.On call
+//   - ctx context.Context
+//   - fromCurrency domain.Currency
+//   - toCurrency domain.Currency
+//   - amount decimal.Decimal
+//   - rate *domain.FXRate
+func (_e *CurrencyPoolRepository_Expecter) Rebalance(ctx interface{}, fromCurrency interface{}, toCurrency interface{}, amount interface{}, rate interface{}) *CurrencyPoolRepository_Rebalance_Call {
+	return &CurrencyPoolRepository_Rebalance_Call{Call: _e.mock.On("Rebalance", ctx, fromCurrency, toCurrency, amount, rate)}
+}
+
+func (_c *CurrencyPoolRepository_Rebalance_Call) Run(run func(ctx context.Context, fromCurrency domain.Currency, toCurrency domain.Currency, amount decimal.Decimal, rate *domain.FXRate)) *CurrencyPoolRepository_Rebalance_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(domain.Currency), args[2].(domain.Currency), args[3].(decimal.Decimal), args[4].(*domain.FXRate))
+	})
+	return _c
+}
+
+func (_c *CurrencyPoolRepository_Rebalance_Call) Return(_a0 decimal.Decimal, _a1 decimal.Decimal, _a2 error) *CurrencyPoolRepository_Rebalance_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *CurrencyPoolRepository_Rebalance_Call) RunAndReturn(run func(context.Context, domain.Currency, domain.Currency, decimal.Decimal, *domain.FXRate) (decimal.Decimal, decimal.Decimal, error)) *CurrencyPoolRepository_Rebalance_Call {
 	_c.Call.Return(run)
 	return _c
 }

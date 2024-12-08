@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package storage
 
 import (
@@ -76,4 +79,48 @@ func TestTransferRepository_SaveAndGetByID(t *testing.T) {
 	got3, err := repo.GetByID(ctx, 123)
 	require.ErrorIs(t, err, domain.ErrTransferNotFound)
 	require.Nil(t, got3)
+}
+
+func TestTransferRepository_UpdateStatus(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	dependencies := integration.NewDependencies(ctx, t)
+
+	dbConnection, err := NewPostgresConnection(ctx, dependencies.Cfg)
+	require.NoError(t, err)
+
+	truncateTables(ctx, t, dbConnection)
+
+	repo := NewTransferRepository(dbConnection)
+
+	// Save a transfer with pending status
+	transfer := &domain.Transfer{
+		ConvertedAmount: decimal.RequireFromString("100.00"),
+		FinalAmount:     decimal.RequireFromString("98.00"),
+		OriginalAmount:  decimal.RequireFromString("100.00"),
+		Description:     "Test Transfer",
+		Status:          domain.TransferStatusPending,
+		From:            domain.Account{Currency: domain.USD},
+		To:              domain.Account{Currency: domain.EUR},
+	}
+
+	require.NoError(t, repo.Save(ctx, transfer))
+
+	// Test successful status update
+	err = repo.UpdateStatus(ctx, transfer.ID, domain.TransferStatusCompleted)
+	require.NoError(t, err)
+
+	updatedTransfer, err := repo.GetByID(ctx, transfer.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TransferStatusCompleted, updatedTransfer.Status)
+
+	// Test failure scenario: updating a non-pending transfer
+	err = repo.UpdateStatus(ctx, transfer.ID, domain.TransferStatusFailed)
+	require.NoError(t, err)
+
+	// Verify the status has not changed
+	updatedTransfer, err = repo.GetByID(ctx, transfer.ID)
+	require.NoError(t, err)
+	assert.Equal(t, domain.TransferStatusCompleted, updatedTransfer.Status)
 }
