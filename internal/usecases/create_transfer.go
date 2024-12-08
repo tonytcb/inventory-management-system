@@ -19,7 +19,7 @@ type CurrencyPoolRepository interface {
 	GetAvailableLiquidity(ctx context.Context, currency domain.Currency) (decimal.Decimal, error)
 	Rebalance(
 		ctx context.Context,
-		fromCurrency,
+		fromCurrency domain.Currency,
 		toCurrency domain.Currency,
 		amount decimal.Decimal,
 		rate *domain.FXRate,

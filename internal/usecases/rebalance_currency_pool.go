@@ -33,20 +33,25 @@ type RebalanceCurrencyPool struct {
 	volumeRepo       TransactionsVolumeRepository
 	interval         time.Duration
 	thresholdPercent decimal.Decimal
+	pairs            []domain.CurrencyPair
 }
 
 func NewRebalanceCurrencyPool(
 	rateProvider FXRateProvider,
 	currencyPoolRepo CurrencyPoolRepository,
+	volumeRepo TransactionsVolumeRepository,
 	interval time.Duration,
-	thresholdPercent int64,
+	thresholdPercent float64,
+	currenciesEnabled []domain.Currency,
 ) *RebalanceCurrencyPool {
 	return &RebalanceCurrencyPool{
 		log:              slog.Default(),
 		rateProvider:     rateProvider,
 		currencyPoolRepo: currencyPoolRepo,
+		volumeRepo:       volumeRepo,
 		interval:         interval,
-		thresholdPercent: decimal.NewFromInt(thresholdPercent),
+		thresholdPercent: decimal.NewFromFloat(thresholdPercent),
+		pairs:            domain.BuildPairs(currenciesEnabled),
 	}
 }
 
@@ -68,18 +73,9 @@ func (r *RebalanceCurrencyPool) Start(ctx context.Context) {
 }
 
 func (r *RebalanceCurrencyPool) CheckPairs(ctx context.Context) error {
-	// @TODO: define currencies via config
-	currencies := []domain.Currency{domain.USD, domain.EUR, domain.GBP, domain.JPY, domain.AUD}
-
-	for _, fromCurrency := range currencies {
-		for _, toCurrency := range currencies {
-			if fromCurrency == toCurrency {
-				continue
-			}
-
-			if _, err := r.RebalanceFromTo(ctx, fromCurrency, toCurrency); err != nil {
-				return errors.Wrapf(err, "error rebalancing from %s to %s", fromCurrency, toCurrency)
-			}
+	for _, pair := range r.pairs {
+		if _, err := r.RebalanceFromTo(ctx, pair.From, pair.To); err != nil {
+			return errors.Wrapf(err, "error rebalancing from %s to %s", pair.From, pair.To)
 		}
 	}
 
@@ -97,18 +93,15 @@ func (r *RebalanceCurrencyPool) RebalanceFromTo(ctx context.Context, fromCurrenc
 		return false, errors.Wrapf(err, "error getting available liquidity for %s", toCurrency)
 	}
 
-	// @todo define threshold per currency via config
-	thresholdPercent := decimal.NewFromInt(5)
-
 	volume, err := r.volumeRepo.GetVolume(ctx, fromCurrency, toCurrency)
 	if err != nil {
 		return false, errors.Wrapf(err, "error getting transaction volume for %s to %s", fromCurrency, toCurrency)
 	}
 
 	imbalance := fromLiquidity.Sub(toLiquidity).Abs()
-	threshold := volume.Mul(thresholdPercent)
+	threshold := volume.Mul(r.thresholdPercent.Div(decimal.NewFromInt(100)))
 
-	if imbalance.LessThan(threshold) {
+	if imbalance.LessThanOrEqual(threshold) {
 		return false, nil
 	}
 

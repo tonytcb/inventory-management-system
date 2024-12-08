@@ -35,11 +35,10 @@ func NewDependencies(ctx context.Context, t *testing.T) *Dependencies {
 	})
 
 	dependencies.Cfg = &config.Config{
-		Environment:  "development",
-		LogLevel:     "debug",
-		RestAPIPort:  ":8080",
-		DatabaseURL:  dependencies.Postgres.DSN(t),
-		DatabaseName: "db_test",
+		Environment: "development",
+		LogLevel:    "debug",
+		RestAPIPort: ":8080",
+		DatabaseURL: dependencies.Postgres.DSN(t),
 	}
 
 	return dependencies

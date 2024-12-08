@@ -5,6 +5,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+
+	"github.com/tonytcb/inventory-management-system/internal/domain"
 )
 
 const (
@@ -18,9 +20,11 @@ type Config struct {
 	RestAPIPort string `mapstructure:"REST_API_PORT"`
 
 	DatabaseURL          string `mapstructure:"DATABASE_URL"`
-	DatabaseName         string `mapstructure:"DATABASE_NAME"`
 	DatastoreMaxOpenConn *int32 `mapstructure:"DATABASE_MAX_OPEN_CONN"`
 	DatastoreMinOpenConn *int32 `mapstructure:"DATABASE_MIN_OPEN_CONN"`
+
+	RebalancePoolThresholdPercent float64           `mapstructure:"REBALANCE_POOL_THRESHOLD_PERCENT"`
+	CurrenciesEnabled             []domain.Currency `mapstructure:"CURRENCIES_ENABLED"`
 }
 
 func (c *Config) IsDevelopmentMode() bool {
