@@ -55,14 +55,14 @@ func NewRebalanceCurrencyPool(
 	}
 }
 
-func (r *RebalanceCurrencyPool) Start(ctx context.Context) {
+func (r *RebalanceCurrencyPool) Start(ctx context.Context) error {
 	ticker := time.NewTicker(r.interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 
 		case <-ticker.C:
 			if err := r.CheckPairs(ctx); err != nil {
@@ -96,6 +96,10 @@ func (r *RebalanceCurrencyPool) RebalanceFromTo(ctx context.Context, fromCurrenc
 	volume, err := r.volumeRepo.GetVolume(ctx, fromCurrency, toCurrency)
 	if err != nil {
 		return false, errors.Wrapf(err, "error getting transaction volume for %s to %s", fromCurrency, toCurrency)
+	}
+
+	if volume.IsZero() {
+		return false, nil
 	}
 
 	imbalance := fromLiquidity.Sub(toLiquidity).Abs()

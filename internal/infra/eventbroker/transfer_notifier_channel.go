@@ -25,19 +25,20 @@ func NewTransferNotifierChannel(log *slog.Logger) *TransferNotifierChannel {
 	}
 }
 
-func (t *TransferNotifierChannel) Create(_ context.Context, event *domain.TransferCreatedEvent) {
+func (t *TransferNotifierChannel) Created(_ context.Context, event *domain.TransferCreatedEvent) error {
 	t.queue <- event
+	return nil
 }
 
-func (t *TransferNotifierChannel) Listen(ctx context.Context, handler TransferNotifierHandler) {
+func (t *TransferNotifierChannel) Listen(ctx context.Context, handler TransferNotifierHandler) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 
 		case event, ok := <-t.queue:
 			if !ok {
-				return
+				return nil
 			}
 
 			if err := handler.Settlement(ctx, event.Transfer, event.FxRate); err != nil {

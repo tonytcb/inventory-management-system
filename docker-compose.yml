@@ -1,0 +1,46 @@
+services:
+  app:
+    build:
+      dockerfile: ./Dockerfile.dev
+      context: .
+    container_name: inventory-management-system-app
+    ports:
+      - "8080:8080"
+    restart: on-failure
+    volumes:
+      - ./:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mynetwork
+
+  postgres:
+    container_name: inventory-management-system-postgres
+    image: postgres:14-bullseye
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=test
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ./internal/infra/storage/migrations:/docker-entrypoint-initdb.d
+      - ./dbdata:/var/lib/postgresql/data/pgdata
+    restart: unless-stopped
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U test -d test'"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  dbdata:
+
+# Networks to be created to facilitate communication between containers
+networks:
+  mynetwork:
+    driver: bridge

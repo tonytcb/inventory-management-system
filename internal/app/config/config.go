@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -24,6 +25,7 @@ type Config struct {
 	DatastoreMinOpenConn *int32 `mapstructure:"DATABASE_MIN_OPEN_CONN"`
 
 	RebalancePoolThresholdPercent float64           `mapstructure:"REBALANCE_POOL_THRESHOLD_PERCENT"`
+	RebalanceCheckInterval        time.Duration     `mapstructure:"REBALANCE_CHECK_INTERVAL"`
 	CurrenciesEnabled             []domain.Currency `mapstructure:"CURRENCIES_ENABLED"`
 }
 
@@ -33,6 +35,20 @@ func (c *Config) IsDevelopmentMode() bool {
 
 func (c *Config) IsTestMode() bool {
 	return os.Getenv("TEST_MODE") == "1"
+}
+
+func (c *Config) LogFields() map[string]any {
+	return map[string]any{
+		"Environment":                   c.Environment,
+		"LogLevel":                      c.LogLevel,
+		"RestAPIPort":                   c.RestAPIPort,
+		"DatabaseURL":                   hide, // c.DatabaseURL,
+		"DatastoreMaxOpenConn":          c.DatastoreMaxOpenConn,
+		"DatastoreMinOpenConn":          c.DatastoreMinOpenConn,
+		"RebalancePoolThresholdPercent": c.RebalancePoolThresholdPercent,
+		"RebalanceCheckInterval":        c.RebalanceCheckInterval,
+		"CurrenciesEnabled":             c.CurrenciesEnabled,
+	}
 }
 
 func Load(filenames ...string) (*Config, error) {

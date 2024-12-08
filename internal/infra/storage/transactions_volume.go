@@ -3,6 +3,9 @@ package storage
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/pkg/errors"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 
@@ -49,6 +52,9 @@ func (r *TransactionsVolumeRepository) GetVolume(
 	var volume decimal.Decimal
 
 	if err := r.db.QueryRow(ctx, query, fromCurrency, toCurrency).Scan(&volume); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return decimal.Zero, nil
+		}
 		return decimal.Zero, err
 	}
 
