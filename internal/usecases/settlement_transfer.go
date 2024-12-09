@@ -46,9 +46,10 @@ func (s *SettlementTransfer) Settlement(ctx context.Context, transfer *domain.Tr
 			return errors.Wrap(err, "error updating transfer status to completed")
 		}
 
-		if err := s.currencyPoolRepo.Credit(ctx, transfer.To.Currency, transfer.ConvertedAmount); err != nil {
-			return errors.Wrap(err, "error crediting amount to currency pool")
-		}
+		// Should credit the amount to the toCurrency pool ?
+		//if err := s.currencyPoolRepo.Credit(ctx, transfer.To.Currency, transfer.ConvertedAmount); err != nil {
+		//	return errors.Wrap(err, "error crediting amount to currency pool")
+		//}
 
 		transaction := s.buildTransaction(transfer, fxRate)
 		if err := s.transactionRepo.Save(ctx, transaction); err != nil {

@@ -96,6 +96,43 @@ func TestRebalanceCurrencyPool_RebalanceFromTo(t *testing.T) {
 			want:    true,
 			wantErr: require.NoError,
 		},
+		{
+			name: "should rebalance if imbalance is greater than threshold - reverse pair when imbalance is negative",
+			fields: fields{
+				currencyPoolRepo: func(t *testing.T) CurrencyPoolRepository {
+					m := mocks.NewCurrencyPoolRepository(t)
+					m.EXPECT().GetAvailableLiquidity(mock.Anything, domain.USD).Return(decimal.NewFromInt(800), nil).Twice()
+					m.EXPECT().GetAvailableLiquidity(mock.Anything, domain.EUR).Return(decimal.NewFromInt(1000), nil).Twice()
+					m.EXPECT().
+						Rebalance(mock.Anything, domain.EUR, domain.USD, mock.Anything, mock.Anything).
+						Return(decimal.NewFromInt(900), decimal.NewFromInt(900), nil).
+						Once()
+					return m
+				},
+				volumeRepo: func(t *testing.T) TransactionsVolumeRepository {
+					m := mocks.NewTransactionsVolumeRepository(t)
+					m.EXPECT().GetVolume(mock.Anything, domain.USD, domain.EUR).Return(decimal.NewFromInt(1000), nil).Once()
+					m.EXPECT().GetVolume(mock.Anything, domain.EUR, domain.USD).Return(decimal.NewFromInt(1000), nil).Once()
+					return m
+				},
+				rateProvider: func(t *testing.T) FXRateProvider {
+					m := mocks.NewFXRateProvider(t)
+					m.EXPECT().
+						GetLatestRate(mock.Anything, domain.EUR, domain.USD).
+						Return(&domain.FXRate{Rate: decimal.NewFromFloat(0.9)}, nil).
+						Once()
+					return m
+				},
+				thresholdPercent: 5,
+			},
+			args: args{
+				ctx:          context.Background(),
+				fromCurrency: domain.USD,
+				toCurrency:   domain.EUR,
+			},
+			want:    true,
+			wantErr: require.NoError,
+		},
 	}
 
 	for _, tt := range tests {

@@ -47,10 +47,10 @@ func TestSettlementTransfer_Settlement(t *testing.T) {
 				},
 				currencyPoolRepo: func(t *testing.T) CurrencyPoolRepository {
 					m := mocks.NewCurrencyPoolRepository(t)
-					m.EXPECT().
-						Credit(mock.Anything, domain.EUR, decimal.RequireFromString("110")).
-						Return(nil).
-						Once()
+					//m.EXPECT().
+					//	Credit(mock.Anything, domain.EUR, decimal.RequireFromString("110")).
+					//	Return(nil).
+					//	Once()
 					return m
 				},
 				transactionRepo: func(t *testing.T) TransactionRepository {
