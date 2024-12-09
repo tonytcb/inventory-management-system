@@ -37,7 +37,7 @@ Also, a transaction with margin (revenue) is stored.
 
 Rebalancing runs every X time given an initial configurations.
 
-The formula consider
+The formula considers:
 - the current balance of the pools
 - transaction volume between currencies
 - threshold to trigger rebalancing, given initial configuration
