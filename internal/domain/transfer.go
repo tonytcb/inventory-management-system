@@ -10,21 +10,21 @@ type TransferStatus string
 
 const (
 	TransferStatusPending   TransferStatus = "pending"
-	TransferStatusCompleted TransferStatus = "succeeded"
+	TransferStatusCompleted TransferStatus = "completed"
 	TransferStatusFailed    TransferStatus = "failed"
 )
 
 type Transfer struct {
 	ID              int
-	ConvertedAmount decimal.Decimal
-	FinalAmount     decimal.Decimal
-	OriginalAmount  decimal.Decimal
-	Description     string
-	Status          TransferStatus
-	From            Account
-	To              Account
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ConvertedAmount decimal.Decimal `json:"converted_amount"`
+	FinalAmount     decimal.Decimal `json:"final_amount"`
+	OriginalAmount  decimal.Decimal `json:"original_amount"`
+	Description     string          `json:"description"`
+	Status          TransferStatus  `json:"-"`
+	From            Account         `json:"from"`
+	To              Account         `json:"to"`
+	CreatedAt       time.Time       `json:"created_at"`
+	UpdatedAt       time.Time       `json:"-"`
 }
 
 func (t *Transfer) ConvertAmounts(rate decimal.Decimal, margin decimal.Decimal) {

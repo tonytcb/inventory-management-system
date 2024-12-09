@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -46,7 +47,7 @@ func (r *CurrencyPoolRepository) Debit(ctx context.Context, currency domain.Curr
 		QueryRow(ctx, query, amount, string(currency)).
 		Scan(&entry.ID, &entry.Currency, &entry.Balance, &entry.UpdatedAt)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.ErrInsufficientBalance
 		}
 		return err
@@ -174,7 +175,7 @@ func (r *CurrencyPoolRepository) Rebalance(
 		Scan(&fromEntry.ID, &fromEntry.Currency, &fromEntry.Balance, &fromEntry.UpdatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return decimal.Zero, decimal.Zero, errors.Wrap(domain.ErrInsufficientBalance, "error to debit toCurrency")
+			return decimal.Zero, decimal.Zero, errors.Wrap(domain.ErrInsufficientBalance, "error to debit fromCurrency")
 		}
 		return decimal.Zero, decimal.Zero, err
 	}

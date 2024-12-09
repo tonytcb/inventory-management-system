@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,22 +21,21 @@ func NewFXRatesRepository(db *pgxpool.Pool) *FXRatesRepository {
 
 func (r *FXRatesRepository) Save(ctx context.Context, fxRate *domain.FXRate) error {
 	const query = `
-		INSERT INTO fx_rates (from_currency, to_currency, rate)
-		VALUES ($1, $2, $3)
+		INSERT INTO fx_rates (from_currency, to_currency, rate, updated_at)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id;
 	`
+
+	if fxRate.UpdatedAt.IsZero() {
+		fxRate.UpdatedAt = time.Now().UTC()
+	}
 
 	var db QueryRower = r.db
 	if tx, ok := extractTxFromContext(ctx); ok {
 		db = tx
 	}
 
-	err := db.QueryRow(ctx, query, fxRate.FromCurrency, fxRate.ToCurrency, fxRate.Rate).Scan(&fxRate.ID)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return db.QueryRow(ctx, query, fxRate.FromCurrency, fxRate.ToCurrency, fxRate.Rate, fxRate.UpdatedAt).Scan(&fxRate.ID)
 }
 
 func (r *FXRatesRepository) GetLatestRate(ctx context.Context, fromCurrency, toCurrency domain.Currency) (*domain.FXRate, error) {
@@ -43,7 +43,7 @@ func (r *FXRatesRepository) GetLatestRate(ctx context.Context, fromCurrency, toC
 		SELECT id, from_currency, to_currency, rate, updated_at
 		FROM fx_rates
 		WHERE from_currency = $1 AND to_currency = $2
-		ORDER BY updated_at DESC
+		ORDER BY id DESC
 		LIMIT 1;
 	`
 

@@ -31,7 +31,7 @@ func (r *TransferRepository) Save(ctx context.Context, transfer *domain.Transfer
 			to_currency
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id;
+		RETURNING id, created_at;
 	`
 
 	var db QueryRower = r.db
@@ -49,7 +49,7 @@ func (r *TransferRepository) Save(ctx context.Context, transfer *domain.Transfer
 		transfer.Status,
 		transfer.From.Currency,
 		transfer.To.Currency,
-	).Scan(&transfer.ID)
+	).Scan(&transfer.ID, &transfer.CreatedAt)
 	if err != nil {
 		return err
 	}

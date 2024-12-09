@@ -12,11 +12,15 @@ import (
 )
 
 func main() {
-	logger := slog.Default()
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
+	slog.SetDefault(logger)
 
 	cfg, err := config.Load("./config/default.env", "default.env")
 	if err != nil {
-		logger.Error("failed to load config", "error", err)
+		logger.Error("failed to load config", "error", err.Error())
 		return
 	}
 
@@ -26,12 +30,12 @@ func main() {
 
 	application, err := app.NewApplication(appCtx, cfg, logger)
 	if err != nil {
-		logger.Error("failed to create application", "error", err)
+		logger.Error("failed to create application", "error", err.Error())
 		return
 	}
 
 	if err = application.Run(appCtx); err != nil {
-		logger.Error("failed to run application:", "error", err)
+		logger.Error("failed to run application:", "error", err.Error())
 	}
 
 	done := make(chan os.Signal, 1)
@@ -44,7 +48,7 @@ func main() {
 	cancel()
 
 	if err = application.Stop(); err != nil {
-		logger.Error("failed to stop application: %v", err)
+		logger.Error("failed to stop application", "error", err.Error())
 		return
 	}
 }

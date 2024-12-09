@@ -66,7 +66,7 @@ func (r *RebalanceCurrencyPool) Start(ctx context.Context) error {
 
 		case <-ticker.C:
 			if err := r.CheckPairs(ctx); err != nil {
-				r.log.Error("error checking pairs", "error", err)
+				r.log.Error("error checking pairs", "error", err.Error())
 			}
 		}
 	}
@@ -102,12 +102,25 @@ func (r *RebalanceCurrencyPool) RebalanceFromTo(ctx context.Context, fromCurrenc
 		return false, nil
 	}
 
-	imbalance := fromLiquidity.Sub(toLiquidity).Abs()
-	threshold := volume.Mul(r.thresholdPercent.Div(decimal.NewFromInt(100)))
+	imbalance := fromLiquidity.Sub(toLiquidity)
 
-	if imbalance.LessThanOrEqual(threshold) {
+	threshold := volume.Mul(r.thresholdPercent.Div(decimal.NewFromInt(100)))
+	if imbalance.Abs().LessThanOrEqual(threshold) {
 		return false, nil
 	}
+
+	if imbalance.IsNegative() {
+		r.log.Info("imbalance is negative, attempt to reverse pair", "from_currency", fromCurrency, "to_currency", toCurrency)
+		return r.RebalanceFromTo(ctx, toCurrency, fromCurrency)
+	}
+
+	r.log.Info(
+		"start rebalancing pair",
+		"from_currency", fromCurrency,
+		"from_currency_liquidity", fromLiquidity.String(),
+		"to_currency", toCurrency,
+		"to_currency_liquidity", toLiquidity.String(),
+	)
 
 	rebalanceAmount := imbalance.Div(decimal.NewFromInt(2))
 	if rebalanceAmount.IsNegative() {
@@ -118,6 +131,8 @@ func (r *RebalanceCurrencyPool) RebalanceFromTo(ctx context.Context, fromCurrenc
 	if err != nil {
 		return false, errors.Wrap(err, "error to get fx rate")
 	}
+
+	r.log.Info("rebalancing amounts", "rebalance_amount", rebalanceAmount.String(), "rate", rate.Rate.String())
 
 	fromNewBalance, toNewBalance, err := r.currencyPoolRepo.Rebalance(ctx, fromCurrency, toCurrency, rebalanceAmount, rate)
 	if err != nil {

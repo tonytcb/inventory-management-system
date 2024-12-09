@@ -4,14 +4,21 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/tonytcb/inventory-management-system/internal/api/http"
 	"github.com/tonytcb/inventory-management-system/internal/app/config"
+	"github.com/tonytcb/inventory-management-system/internal/domain"
 	"github.com/tonytcb/inventory-management-system/internal/infra/eventbroker"
 	"github.com/tonytcb/inventory-management-system/internal/infra/storage"
 	"github.com/tonytcb/inventory-management-system/internal/usecases"
 )
 
-func buildHTTPServer(cfg *config.Config, conn *pgxpool.Pool, log *slog.Logger) (*http.Server, error) {
+func buildHTTPServer(
+	cfg *config.Config,
+	conn *pgxpool.Pool,
+	log *slog.Logger,
+	transferNotifierChan chan *domain.TransferCreatedEvent,
+) (*http.Server, error) {
 	// Initialize database repositories
 	var (
 		rateProvider     = storage.NewFXRatesRepository(conn)
@@ -19,7 +26,7 @@ func buildHTTPServer(cfg *config.Config, conn *pgxpool.Pool, log *slog.Logger) (
 		transfersRepo    = storage.NewTransferRepository(conn)
 	)
 
-	var transferNotifier = eventbroker.NewTransferNotifierChannel(log)
+	var transferNotifier = eventbroker.NewTransferNotifierChannel(log, transferNotifierChan)
 	var txManager = storage.NewTxManager(conn)
 
 	// Initialize use cases
@@ -30,7 +37,7 @@ func buildHTTPServer(cfg *config.Config, conn *pgxpool.Pool, log *slog.Logger) (
 
 	// Initialize http handlers
 	var (
-		createTransferHandler = http.NewCreateTransferHandler(log, createTransferUsecase)
+		createTransferHandler = http.NewCreateTransferHandler(cfg, log, createTransferUsecase)
 		updateRateHandler     = http.NewUpdateRateHandler(log, updateRateUsecase)
 	)
 

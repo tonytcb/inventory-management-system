@@ -95,5 +95,5 @@ func (c *CreateTransfer) Create(
 		return nil
 	})
 
-	return transfer, nil
+	return transfer, err
 }

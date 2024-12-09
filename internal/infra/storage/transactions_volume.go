@@ -46,7 +46,9 @@ func (r *TransactionsVolumeRepository) GetVolume(
 	const query = `
 		SELECT volume
 		FROM transaction_volumes
-		WHERE from_currency = $1 AND to_currency = $2;
+		WHERE (from_currency = $1 AND to_currency = $2) OR (from_currency = $2 AND to_currency = $1)
+		ORDER BY updated_at DESC
+		LIMIT 1;
 	`
 
 	var volume decimal.Decimal

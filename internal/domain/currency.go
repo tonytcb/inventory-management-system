@@ -10,6 +10,18 @@ const (
 	AUD Currency = "AUD"
 )
 
+func (c Currency) IsValid() bool {
+	valid := []Currency{USD, EUR, JPY, GBP, AUD}
+
+	for _, v := range valid {
+		if v == c {
+			return true
+		}
+	}
+
+	return false
+}
+
 type CurrencyPair struct {
 	From Currency
 	To   Currency

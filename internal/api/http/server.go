@@ -41,10 +41,13 @@ func NewServer(
 }
 
 func (m *Server) Start() error {
-	router := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
 
-	router.POST("/health", m.createTransferHandler.Handle)
-	router.PUT("/fx-rate", m.updateRateHandler.Handle)
+	router := gin.New()
+	router.Use(gin.Recovery())
+
+	router.POST("/transfer", m.createTransferHandler.Handle)
+	router.POST("/fx-rate", m.updateRateHandler.Handle)
 
 	m.srv = &http.Server{
 		Addr:    m.cfg.RestAPIPort,

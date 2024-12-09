@@ -24,6 +24,7 @@ type Config struct {
 	DatastoreMaxOpenConn *int32 `mapstructure:"DATABASE_MAX_OPEN_CONN"`
 	DatastoreMinOpenConn *int32 `mapstructure:"DATABASE_MIN_OPEN_CONN"`
 
+	RevenueMarginPercent          float64           `mapstructure:"REVENUE_MARGIN_PERCENT"`
 	RebalancePoolThresholdPercent float64           `mapstructure:"REBALANCE_POOL_THRESHOLD_PERCENT"`
 	RebalanceCheckInterval        time.Duration     `mapstructure:"REBALANCE_CHECK_INTERVAL"`
 	CurrenciesEnabled             []domain.Currency `mapstructure:"CURRENCIES_ENABLED"`

@@ -16,12 +16,15 @@ type TransferNotifierChannel struct {
 	queue chan *domain.TransferCreatedEvent
 }
 
-func NewTransferNotifierChannel(log *slog.Logger) *TransferNotifierChannel {
-	const bufferSize = 100
+func NewTransferNotifierChannel(log *slog.Logger, transferNotifierChan chan *domain.TransferCreatedEvent) *TransferNotifierChannel {
+	if transferNotifierChan == nil {
+		const bufferSize = 100_000
+		transferNotifierChan = make(chan *domain.TransferCreatedEvent, bufferSize)
+	}
 
 	return &TransferNotifierChannel{
 		log:   log,
-		queue: make(chan *domain.TransferCreatedEvent, bufferSize),
+		queue: transferNotifierChan,
 	}
 }
 
@@ -41,9 +44,12 @@ func (t *TransferNotifierChannel) Listen(ctx context.Context, handler TransferNo
 				return nil
 			}
 
-			if err := handler.Settlement(ctx, event.Transfer, event.FxRate); err != nil {
+			if err := handler.Settlement(context.Background(), event.Transfer, event.FxRate); err != nil {
 				t.log.Error("error settling transfer", "transfer", event.Transfer.ID, "error", err.Error())
+				continue
 			}
+
+			t.log.Info("transfer settled successfully", "transfer", event.Transfer.ID)
 		}
 	}
 }
