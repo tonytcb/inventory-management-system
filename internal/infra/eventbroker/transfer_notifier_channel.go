@@ -16,15 +16,12 @@ type TransferNotifierChannel struct {
 	queue chan *domain.TransferCreatedEvent
 }
 
-func NewTransferNotifierChannel(log *slog.Logger, transferNotifierChan chan *domain.TransferCreatedEvent) *TransferNotifierChannel {
-	if transferNotifierChan == nil {
-		const bufferSize = 100_000
-		transferNotifierChan = make(chan *domain.TransferCreatedEvent, bufferSize)
-	}
+func NewTransferNotifierChannel(log *slog.Logger) *TransferNotifierChannel {
+	const bufferSize = 100_000
 
 	return &TransferNotifierChannel{
 		log:   log,
-		queue: transferNotifierChan,
+		queue: make(chan *domain.TransferCreatedEvent, bufferSize),
 	}
 }
 

@@ -10,7 +10,6 @@ import (
 
 	"github.com/tonytcb/inventory-management-system/internal/api/http"
 	"github.com/tonytcb/inventory-management-system/internal/app/config"
-	"github.com/tonytcb/inventory-management-system/internal/domain"
 	"github.com/tonytcb/inventory-management-system/internal/infra/eventbroker"
 	"github.com/tonytcb/inventory-management-system/internal/infra/storage"
 	"github.com/tonytcb/inventory-management-system/internal/usecases"
@@ -32,9 +31,9 @@ func NewApplication(ctx context.Context, cfg *config.Config, log *slog.Logger) (
 		return nil, errors.Wrap(err, "failed to create database connection")
 	}
 
-	transferNotifierChan := make(chan *domain.TransferCreatedEvent, 100)
+	transferNotifier := eventbroker.NewTransferNotifierChannel(log)
 
-	httpServer, err := buildHTTPServer(cfg, dbConn, log, transferNotifierChan)
+	httpServer, err := buildHTTPServer(cfg, dbConn, log, transferNotifier)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create http server")
 	}
@@ -44,7 +43,7 @@ func NewApplication(ctx context.Context, cfg *config.Config, log *slog.Logger) (
 		log:               log,
 		httpServer:        httpServer,
 		databaseConn:      dbConn,
-		transferNotifier:  eventbroker.NewTransferNotifierChannel(log, transferNotifierChan),
+		transferNotifier:  transferNotifier,
 		settlementHandler: buildSettlementUsecase(cfg, dbConn, log),
 		rebalanceHandler:  buildRebalanceUsecase(cfg, dbConn, log),
 	}, nil

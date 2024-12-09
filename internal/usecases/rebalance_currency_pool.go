@@ -114,18 +114,18 @@ func (r *RebalanceCurrencyPool) RebalanceFromTo(ctx context.Context, fromCurrenc
 		return r.RebalanceFromTo(ctx, toCurrency, fromCurrency)
 	}
 
+	rebalanceAmount := imbalance.Div(decimal.NewFromInt(2))
+
 	r.log.Info(
 		"start rebalancing pair",
 		"from_currency", fromCurrency,
 		"from_currency_liquidity", fromLiquidity.String(),
 		"to_currency", toCurrency,
 		"to_currency_liquidity", toLiquidity.String(),
+		"imbalance", imbalance.String(),
+		"threshold", threshold.String(),
+		"rebalance_amount", rebalanceAmount.String(),
 	)
-
-	rebalanceAmount := imbalance.Div(decimal.NewFromInt(2))
-	if rebalanceAmount.IsNegative() {
-		return false, errors.Errorf("invalid rebalance amount: %s", rebalanceAmount.String())
-	}
 
 	rate, err := r.rateProvider.GetLatestRate(ctx, fromCurrency, toCurrency)
 	if err != nil {

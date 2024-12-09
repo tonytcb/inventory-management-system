@@ -17,7 +17,7 @@ import (
 func TestTransferNotifierChannel_CreatedAndListen(t *testing.T) {
 	logger := slog.Default()
 
-	notifier := NewTransferNotifierChannel(logger, nil)
+	notifier := NewTransferNotifierChannel(logger)
 
 	handler := mocks.NewTransferNotifierHandler(t)
 	handler.EXPECT().

@@ -7,8 +7,6 @@ import (
 
 	"github.com/tonytcb/inventory-management-system/internal/api/http"
 	"github.com/tonytcb/inventory-management-system/internal/app/config"
-	"github.com/tonytcb/inventory-management-system/internal/domain"
-	"github.com/tonytcb/inventory-management-system/internal/infra/eventbroker"
 	"github.com/tonytcb/inventory-management-system/internal/infra/storage"
 	"github.com/tonytcb/inventory-management-system/internal/usecases"
 )
@@ -17,7 +15,7 @@ func buildHTTPServer(
 	cfg *config.Config,
 	conn *pgxpool.Pool,
 	log *slog.Logger,
-	transferNotifierChan chan *domain.TransferCreatedEvent,
+	transferNotifier usecases.TransferNotifier,
 ) (*http.Server, error) {
 	// Initialize database repositories
 	var (
@@ -26,7 +24,6 @@ func buildHTTPServer(
 		transfersRepo    = storage.NewTransferRepository(conn)
 	)
 
-	var transferNotifier = eventbroker.NewTransferNotifierChannel(log, transferNotifierChan)
 	var txManager = storage.NewTxManager(conn)
 
 	// Initialize use cases
