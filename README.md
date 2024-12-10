@@ -67,6 +67,8 @@ All next configurations are set in `.env` file.
 2. Run `make up` or `docker-compose up app`
 3. Run `node mockFxRateSender.js http://localhost:8080/fx-rate` to start sending mock fx rates
 
+HTTP API available at `http://localhost:8080`.
+
 ## HTTP API
 
 ### Update FX Rate
